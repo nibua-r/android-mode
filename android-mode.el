@@ -1,27 +1,27 @@
 ;;; android-mode.el --- Minor mode for Android application development
 
 ;; Copyright (C) 2009, 2010, 2011 R.W van 't Veer
+;; Copyright (C) 2011 R. Aubin
 
-;; Author: R.W. van 't Veer
-;; Created: 20 Feb 2009
+;; Author: R. Aubin
+;; Created: 11 Oct 2011
+;; Time-stamp: <2011-10-11 22:09:13>
 ;; Keywords: tools processes
 ;; Version: 0.1
-;; URL: https://github.com/remvee/android-mode
+;; URL: https://github.com/nibua-r/android-mode
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License
-;; as published by the Free Software Foundation; either version 3
-;; of the License, or (at your option) any later version.
-;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-;;
+
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -40,7 +40,7 @@
   :prefix "android-mode-"
   :group 'applications)
 
-(defcustom android-mode-sdk-dir "~/Android/sdk"
+(defcustom android-mode-sdk-dir "/usr/local/android/android-sdk-linux_x86"
   "Set to the directory containing the Android SDK."
   :type 'string
   :group 'android-mode)
