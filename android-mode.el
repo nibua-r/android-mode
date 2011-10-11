@@ -5,7 +5,7 @@
 
 ;; Author: R. Aubin
 ;; Created: 11 Oct 2011
-;; Time-stamp: <2011-10-11 22:09:13>
+;; Time-stamp: <2011-10-12 00:07:18>
 ;; Keywords: tools processes
 ;; Version: 0.1
 ;; URL: https://github.com/nibua-r/android-mode
@@ -162,7 +162,7 @@ defined sdk directory. Defaults to `android-mode-sdk-dir'."
       (setq result (cons (match-string 1 output) result))
       (setq offset (match-end 0)))
     (if result
-      (reverse result)
+        (reverse result)
       (error "no Android Virtual Devices found"))))
 
 (defun android-start-emulator ()
@@ -217,19 +217,19 @@ defined sdk directory. Defaults to `android-mode-sdk-dir'."
 
 (defun android-logcat-prepare-msg (msg)
   (if (string-match "\\bat \\(.+\\)\\.\\([^.]+\\)\\.\\([^.]+\\)(\\(.+\\):\\([0-9]+\\))" msg)
-    (let* ((package (match-string 1 msg))
-           (class (match-string 2 msg))
-           (method (match-string 3 msg))
-           (filename (concat (replace-regexp-in-string "\\." "/" package) "/" (match-string 4 msg)))
-           (linenr (match-string 5 msg)))
-      (if (file-exists-p (concat (android-root) "/src/" filename))
-        (propertize msg
-                    'face 'underline
-                    'mouse-face 'highlight
-                    'filename filename
-                    'linenr (string-to-number linenr)
-                    'follow-link t)
-        msg))
+      (let* ((package (match-string 1 msg))
+             (class (match-string 2 msg))
+             (method (match-string 3 msg))
+             (filename (concat (replace-regexp-in-string "\\." "/" package) "/" (match-string 4 msg)))
+             (linenr (match-string 5 msg)))
+        (if (file-exists-p (concat (android-root) "/src/" filename))
+            (propertize msg
+                        'face 'underline
+                        'mouse-face 'highlight
+                        'filename filename
+                        'linenr (string-to-number linenr)
+                        'follow-link t)
+          msg))
     msg))
 
 (defvar android-logcat-pending-output "")
@@ -248,20 +248,20 @@ defined sdk directory. Defaults to `android-mode-sdk-dir'."
             (setq pos (match-end 0))
             (goto-char (point-max))
             (if (string-match "^\\(.\\)/\\(.*\\)( *\\([0-9]+\\)): \\(.*\\)$" line)
-              (let* ((level (match-string 1 line))
-                     (level-face (or (cdr (assoc level android-mode-log-face-alist)) android-mode-info-face))
-                     (tag (replace-regexp-in-string " *$" "" (match-string 2 line)))
-                     (pid (match-string 3 line))
-                     (msg (match-string 4 line)))
-                (insert (propertize level
-                                    'font-lock-face level-face))
-                (tab-to-tab-stop)
-                (insert (propertize tag
-                                    'font-lock-face 'font-lock-function-name-face))
-                (insert (propertize (concat "("  pid ")")
-                                    'font-lock-face 'font-lock-constant-face))
-                (tab-to-tab-stop)
-                (insert (android-logcat-prepare-msg (propertize msg 'font-lock-face level-face))))
+                (let* ((level (match-string 1 line))
+                       (level-face (or (cdr (assoc level android-mode-log-face-alist)) android-mode-info-face))
+                       (tag (replace-regexp-in-string " *$" "" (match-string 2 line)))
+                       (pid (match-string 3 line))
+                       (msg (match-string 4 line)))
+                  (insert (propertize level
+                                      'font-lock-face level-face))
+                  (tab-to-tab-stop)
+                  (insert (propertize tag
+                                      'font-lock-face 'font-lock-function-name-face))
+                  (insert (propertize (concat "("  pid ")")
+                                      'font-lock-face 'font-lock-constant-face))
+                  (tab-to-tab-stop)
+                  (insert (android-logcat-prepare-msg (propertize msg 'font-lock-face level-face))))
               (insert (propertize line
                                   'font-lock-face 'font-lock-warning-face)))
             (insert "\n")))
