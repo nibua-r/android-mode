@@ -5,7 +5,7 @@
 
 ;; Author: R. Aubin
 ;; Created: 11 Oct 2011
-;; Time-stamp: <2011-10-12 00:07:18>
+;; Time-stamp: <2011-10-13 02:25:31>
 ;; Keywords: tools processes
 ;; Version: 0.1
 ;; URL: https://github.com/nibua-r/android-mode
@@ -149,6 +149,141 @@ defined sdk directory. Defaults to `android-mode-sdk-dir'."
        (setq android-exclusive-processes (cons (intern name)
                                                android-exclusive-processes))))
 
+
+                                        ; nibua-r's experiments
+
+(defcustom android-mode-project-root nil
+  "This is where your Android project root is stored."
+  :type 'directory
+  :group 'android-mode )
+
+(defcustom android-current-sdkmanager-call nil
+  ""
+  :type 'string
+  :group 'android-mode )
+
+(defcustom android-sdkmanager-call (format "java -Dcom.android.sdkmanager.toolsdir=%s/tools/ -classpath \"%s/tools/lib/sdkmanager.jar\" com.android.sdkmanager.Main "
+                                           android-mode-sdk-dir
+                                           android-mode-sdk-dir)
+  "Direct sdkmanager.jar call (bypassing the android script since we do not want the GUI)."
+  :type 'string
+  :group 'android-mode )
+
+(defvar current-frame nil)
+
+(defun buffer-contains-substring (buffer string)
+  (save-excursion
+    (save-match-data
+      (with-temp-buffer
+        (save-excursion
+          (insert-buffer-substring-no-properties buffer)
+          (goto-char (point-min))
+          (search-forward string nil t))))))
+
+;; Helper function for compile call.
+(defun android-notify-compilation-result(buffer msg)
+  "Notify that the compilation is finished,
+close the *compilation* buffer if the compilation is successful,
+and set the focus back to Emacs frame"
+  (if (string-match "^finished" msg)
+      (if (not (buffer-contains-substring buffer "Error:"))
+          (progn (setq android-mode-project-root
+            (with-temp-buffer
+              (save-excursion
+                (insert-buffer-substring-no-properties "*compilation*"))
+              (keep-lines "^Created project directory: .*")
+              (re-search-forward "^Created project directory: \\(.*\\)\n$" nil t)
+              (replace-match "\\1")
+              (buffer-string)
+              ))
+                 (dired android-mode-project-root))
+        (message "Error: Check the *compilation* buffer for further details."))
+    )
+  ;;        (delete-windows-on buffer)
+  ;;     (tooltip-show "\n Compilation Successful :-) \n "))
+  ;; (tooltip-show "\n Compilation Failed :-( \n "))
+  (setq current-frame (car (car (cdr (current-frame-configuration)))))
+  (select-frame-set-input-focus current-frame)
+  )
+
+(add-to-list 'compilation-finish-functions
+             'android-notify-compilation-result)
+
+(defun android-list-targets ()
+  "List and display in a specific buffer the available targets as returned by android list targets."
+  (interactive)
+  (save-excursion
+    (with-output-to-temp-buffer "*Available Android targets*"
+      (progn (princ
+              (shell-command-to-string
+               (concat android-sdkmanager-call "list targets")))))
+    (sort*
+     (with-temp-buffer ;; TODO: checks if progn is not useless!
+       (progn (save-excursion
+               (insert-buffer-substring "*Available Android targets*"))
+              (keep-lines "^id.*")
+              (while (re-search-forward "^id.+?\"\\(.+?\\)\"" nil t)
+                (replace-match "\\1\n"))
+              (split-string (buffer-string) "\n" t)))
+     'string-lessp :key 'downcase)
+))
+;; TODO: Implements human order sorting: http://rottcodd.wordpress.com/2007/12/15/human-order-sorting/x
+
+;; http://developer.android.com/guide/developing/projects/projects-cmdline.html#CreatingAProject
+(defun android-create-project (name target path activity package)
+  "Create an android project."
+  (interactive
+   (list
+    (read-from-minibuffer "Project name: ")
+    (completing-read "Target ID of the new project [required]: " (android-list-targets))
+    (read-file-name "The new project's directory  [required]: ")
+    (read-from-minibuffer "Android package name for the application  [required]: ") ; TODO: Uses a regex pattern to validate the package input
+    (read-from-minibuffer "Name of the default Activity that is created  [required]: ")))
+  (message "android create project --name %s --target \"%s\" --path %s --package %s --activity %s"
+           name target path activity package)
+  (setq android-current-sdkmanager-call (concat android-sdkmanager-call
+                                                "create project "
+                                                (format "--name %s --target \"%s\" --path %s --package %s --activity %s" name target path activity package)))
+  (let (compilation-buffer (get-buffer "*compilation"))
+    (if (bufferp compilation-buffer) (kill-buffer compilation-buffer)))
+  (compile android-current-sdkmanager-call))
+
+
+;; Seriously broken! --library argument is always passed!
+;; ;; http://developer.android.com/guide/developing/projects/projects-cmdline.html#UpdatingAProject
+;; (defun android-update-project (path name target lib-path)
+;;   "Create an android project."
+;;   (interactive
+;;    (list
+;;     (read-file-name "The project's directory [required]: ")
+;;     (read-from-minibuffer "Project name (optional, if you're not changing the project name, let this empty): ")
+;;     (completing-read "Target ID of the new project (optional, if you're not changing the target ID, let this empty): " (android-list-targets) nil nil)
+;;     (read-file-name "Directory of an Android library to add, relative to this project's directory: "
+;;                     "" "" nil "")))
+;;   (setq android-current-sdkmanager-call (concat android-sdkmanager-call "update project "))
+;;   (if (file-directory-p path)
+;;       (progn (setq android-current-sdkmanager-call (concat android-current-sdkmanager-call (format "--path %s " path)))
+;;              (if (string= name "")
+;;                  (message "Let the project name untouched.")
+;;                (setq android-current-sdkmanager-call (concat android-current-sdkmanager-call (format "--name %s " name)))
+;;                )
+;;              (if (string= target "")
+;;                  (message "Let the target ID untouched.")
+;;                (setq android-current-sdkmanager-call (concat android-current-sdkmanager-call (format "--target %s " target)))
+;;                )
+;;              (if (string= lib-path "")
+;;                  (if (not (file-directory-p (concat path lib-path)))
+;;                      (message "Do not add an Android library.")
+;;                    (setq android-current-sdkmanager-call (concat android-current-sdkmanager-call (format "--library %s " lib-path)))
+;;                    )
+;;                )
+;;              (let (compilation-buffer (get-buffer "*compilation"))
+;;                (if (bufferp compilation-buffer) (kill-buffer compilation-buffer)))
+;;              (compile android-current-sdkmanager-call)
+;;              )
+;;     (message "Aborting the project update action (the project directory given is not an existing directory).")
+;;     )
+;;   )
 
                                         ; emulator
 
